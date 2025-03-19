@@ -1,0 +1,260 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+
+const wordsToKnow = [
+  { nl: "badkamer", en: "bathroom" },
+  { nl: "balkon", en: "balcony" },
+  { nl: "douche", en: "shower" },
+  { nl: "wc", en: "toilet" },
+  { nl: "bank", en: "couch" },
+  { nl: "stoelen", en: "chairs" },
+  { nl: "kast", en: "closet" },
+  { nl: "trap", en: "stairs" },
+  { nl: "lampen", en: "lights" },
+  { nl: "pot", en: "jar" },
+  { nl: "aanrecht", en: "counter" },
+  { nl: "ruimte", en: "space" },
+  { nl: "meubels", en: "furniture" },
+  { nl: "op wielen", en: "on wheels" },
+  { nl: "stapelbed", en: "bunk bed" },
+  { nl: "klapstoel", en: "folding chair" },
+];
+
+const phrases = [
+  { en: "Here we have our coatrack.", nl: "Hier hebben we onze kapstok." },
+  { en: "In the corner, there is a kitchen.", nl: "In de hoek is een keuken." },
+  { en: "This is our living room.", nl: "Dit is onze woonkamer." },
+  { en: "Here is the bedroom.", nl: "Hier is de slaapkamer." },
+  { en: "This table can fold down.", nl: "Deze tafel kan ingeklapt worden." },
+  { en: "We can hide the stools here.", nl: "We kunnen de krukken hier verbergen." },
+  { en: "You can pull out the closet and push it back in.", nl: "Je kunt de kast uittrekken en terugduwen." },
+];
+
+const boldWords = [
+  { en: "The coat rack is <b>behind</b> the door.", nl: "achter" },
+  { en: "The table is <b>next to</b> the sofa.", nl: "naast" },
+  { en: "The bed is <b>above</b> the closet.", nl: "boven" },
+  { en: "The chairs are <b>to the left</b> of the table.", nl: "links" },
+  { en: "The carpet is <b>under</b> the table.", nl: "onder" },
+  { en: "The books are <b>on</b> the shelf.", nl: "op" },
+];
+
+const shuffleArray = (array) => [...array].sort(() => Math.random() - 0.5);
+
+export default function LearningApp() {
+  const [activeTab, setActiveTab] = useState("words");
+  const [shuffledList, setShuffledList] = useState(shuffleArray(wordsToKnow));
+  const [index, setIndex] = useState(0);
+  const [input, setInput] = useState("");
+  const [score, setScore] = useState(0);
+  const [feedback, setFeedback] = useState("");
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [answered, setAnswered] = useState(false);
+  const [streak, setStreak] = useState(0);
+  const [attempts, setAttempts] = useState(0);
+  const [history, setHistory] = useState([]);
+  const [hintShown, setHintShown] = useState(false);
+  
+  useEffect(() => {
+    loadContent(activeTab);
+  }, [activeTab]);
+
+  const loadContent = (tabName) => {
+    let list;
+    switch(tabName) {
+      case "words":
+        list = wordsToKnow;
+        break;
+      case "phrases":
+        list = phrases;
+        break;
+      case "boldWords":
+        list = boldWords;
+        break;
+      default:
+        list = wordsToKnow;
+    }
+    setShuffledList(shuffleArray(list));
+    resetExercise();
+  };
+
+  const resetExercise = () => {
+    setIndex(0);
+    setScore(0);
+    setStreak(0);
+    setAttempts(0);
+    setInput("");
+    setFeedback("");
+    setAnswered(false);
+    setHistory([]);
+    setHintShown(false);
+  };
+
+  const checkAnswer = () => {
+    if (input.trim() === "") return;
+    
+    setAttempts(attempts + 1);
+    const correctAnswer = shuffledList[index].nl.toLowerCase();
+    const userAnswer = input.trim().toLowerCase();
+    
+    if (userAnswer === correctAnswer) {
+      setFeedback("Goed! ✅");
+      setScore(score + 1);
+      setStreak(streak + 1);
+      setShowConfetti(true);
+      setTimeout(() => setShowConfetti(false), 2000);
+      setHistory([...history, { word: shuffledList[index].en, correct: true }]);
+    } else {
+      setFeedback(`Fout! ❌ Het juiste antwoord is: ${shuffledList[index].nl}`);
+      setStreak(0);
+      setHistory([...history, { word: shuffledList[index].en, correct: false }]);
+    }
+    setAnswered(true);
+  };
+
+  const nextWord = () => {
+    if (index + 1 >= shuffledList.length) {
+      if (score === shuffledList.length) {
+        setFeedback("Gefeliciteerd! 🎉 Je hebt alle oefeningen goed! 🎯");
+        setShowConfetti(true);
+      } else {
+        setFeedback(`Oefening voltooid! Je score: ${score}/${shuffledList.length}`);
+      }
+      return;
+    }
+    
+    setInput("");
+    setFeedback("");
+    setIndex(index + 1);
+    setAnswered(false);
+    setHintShown(false);
+  };
+
+  const showHint = () => {
+    const word = shuffledList[index].nl;
+    setFeedback(`Hint: ${word.charAt(0)}${word.slice(1).replace(/[a-z]/g, "_")}`);
+    setHintShown(true);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      if (!answered) {
+        checkAnswer();
+      } else {
+        nextWord();
+      }
+    }
+  };
+
+  const progressPercentage = (score / shuffledList.length) * 100;
+
+  return (
+    <div className="flex flex-col items-center p-4 max-w-md mx-auto">
+      {showConfetti && <div className="fixed inset-0 pointer-events-none text-center text-6xl">
+        🎉✨🎊
+      </div>}
+      
+      <h1 className="text-2xl font-bold mb-4">Leer Engels naar Nederlands</h1>
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="words">Woorden</TabsTrigger>
+          <TabsTrigger value="phrases">Zinnen</TabsTrigger>
+          <TabsTrigger value="boldWords">Posities</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      <div className="w-full mb-4">
+        <div className="flex justify-between mb-1">
+          <span className="text-sm">Voortgang</span>
+          <span className="text-sm font-bold">{score}/{shuffledList.length}</span>
+        </div>
+        <Progress value={progressPercentage} className="h-2 w-full" />
+      </div>
+      
+      {index < shuffledList.length ? (
+        <Card className="w-full mb-4">
+          <CardContent className="p-6">
+            <div className="mb-4">
+              <p className="text-xs text-gray-500 mb-1">Vertaal naar Nederlands:</p>
+              <p className="text-xl font-medium mb-4" dangerouslySetInnerHTML={{ __html: shuffledList[index].en }}></p>
+              
+              <Input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Type je antwoord hier..."
+                className="mb-2"
+                disabled={answered}
+                autoFocus
+              />
+              
+              <div className="flex gap-2 mb-2">
+                <Button 
+                  onClick={checkAnswer} 
+                  className="w-full" 
+                  disabled={answered || input.trim() === ""}
+                >
+                  Controleer
+                </Button>
+                
+                {!answered && (
+                  <Button 
+                    onClick={showHint} 
+                    variant="outline" 
+                    className="w-1/3"
+                    disabled={hintShown}
+                  >
+                    Hint
+                  </Button>
+                )}
+              </div>
+              
+              {feedback && (
+                <div className={`p-2 rounded ${feedback.includes("✅") ? "bg-green-50" : "bg-red-50"}`}>
+                  <p className="text-center">{feedback}</p>
+                </div>
+              )}
+            </div>
+            
+            {answered && (
+              <div className="text-center">
+                <Button onClick={nextWord} className="w-full">
+                  {index + 1 >= shuffledList.length ? "Voltooien" : "Volgende"}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="text-center p-6 bg-green-50 rounded-lg">
+          <h2 className="text-xl font-bold text-green-600 mb-2">
+            Oefening voltooid!
+          </h2>
+          <p className="mb-4">Je score: {score}/{shuffledList.length}</p>
+          <Button onClick={resetExercise}>Opnieuw beginnen</Button>
+        </div>
+      )}
+      
+      {history.length > 0 && (
+        <div className="w-full mt-4">
+          <h3 className="text-sm font-semibold mb-2">Statistieken</h3>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="bg-gray-50 p-2 rounded">
+              <p className="text-xs text-gray-500">Huidige reeks</p>
+              <p className="font-bold">{streak} woorden</p>
+            </div>
+            <div className="bg-gray-50 p-2 rounded">
+              <p className="text-xs text-gray-500">Nauwkeurigheid</p>
+              <p className="font-bold">{attempts > 0 ? Math.round((score/attempts) * 100) : 0}%</p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
